@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>每日托福單字</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #f0f4f8;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    color: #1e3a5f;
+    margin-bottom: 4px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .subtitle {
+    font-size: 0.82rem;
+    color: #6b7a8d;
+    margin-bottom: 20px;
+  }
+  .date-badge {
+    background: #1e3a5f;
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 16px;
+    font-size: 0.8rem;
+    margin-bottom: 20px;
+    letter-spacing: 0.03em;
+  }
+  .cards-container {
+    width: 100%;
+    max-width: 520px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 18px 20px;
+    border-left: 4px solid #4a90d9;
+    transition: box-shadow 0.2s;
+  }
+  .card.b2 { border-left-color: #e07b3c; }
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .word {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e3a5f;
+  }
+  .pos {
+    font-size: 0.75rem;
+    color: #fff;
+    background: #4a90d9;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-weight: 600;
+  }
+  .card.b2 .pos { background: #e07b3c; }
+  .level-tag {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: #4a90d9;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .card.b2 .level-tag { color: #e07b3c; }
+  .zh {
+    font-size: 1rem;
+    color: #2d4a6e;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .example {
+    font-size: 0.82rem;
+    color: #555;
+    line-height: 1.6;
+    border-top: 1px solid #eef2f7;
+    padding-top: 8px;
+    margin-top: 4px;
+  }
+  .example em {
+    font-style: normal;
+    color: #1e3a5f;
+    font-weight: 600;
+  }
+  .example .zh-ex {
+    color: #888;
+    font-size: 0.78rem;
+    margin-top: 2px;
+  }
+  .btn-wrap {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+  }
+  button {
+    background: #1e3a5f;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.18s, transform 0.1s;
+  }
+  button:hover { background: #2a4f7c; transform: translateY(-1px); }
+  button:active { transform: translateY(0); }
+  button.secondary {
+    background: #e8eef5;
+    color: #1e3a5f;
+  }
+  button.secondary:hover { background: #d4dfe9; }
+  .loading {
+    color: #6b7a8d;
+    font-size: 0.9rem;
+    margin-top: 30px;
+    display: none;
+  }
+  .progress {
+    font-size: 0.78rem;
+    color: #6b7a8d;
+    margin-top: 10px;
+    text-align: center;
+  }
+  .legend {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    font-size: 0.75rem;
+    color: #6b7a8d;
+  }
+  .legend span { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 10px; height: 10px; border-radius: 2px; }
+  .dot.b1 { background: #4a90d9; }
+  .dot.b2 { background: #e07b3c; }
+</style>
+</head>
+<body>
+
+<h1>📚 每日托福單字</h1>
+<p class="subtitle">TOEFL Junior B1~B2 混合詞庫</p>
+<div class="date-badge" id="dateBadge"></div>
+
+<div class="legend">
+  <span><div class="dot b1"></div> B1 基礎</span>
+  <span><div class="dot b2"></div> B2 挑戰</span>
+</div>
+
+<div class="cards-container" id="cardsContainer">
+  <p style="color:#6b7a8d;font-size:0.9rem;">按下「產生今日單字」開始！</p>
+</div>
+
+<p class="loading" id="loading">⏳ 正在產生單字...</p>
+
+<div class="btn-wrap">
+  <button onclick="generateWords()">產生今日單字</button>
+  <button class="secondary" onclick="refreshWords()">換一組</button>
+</div>
+<p class="progress" id="progress"></p>
+
+<script>
+const today = new Date();
+const dateStr = today.toLocaleDateString('zh-TW', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+document.getElementById('dateBadge').textContent = dateStr;
+
+let usedWords = JSON.parse(localStorage.getItem('toefl_used') || '[]');
+let sessionCount = parseInt(localStorage.getItem('toefl_count') || '0');
+
+async function generateWords(forceNew = false) {
+  const container = document.getElementById('cardsContainer');
+  const loading = document.getElementById('loading');
+  const progress = document.getElementById('progress');
+
+  container.innerHTML = '';
+  loading.style.display = 'block';
+
+  const usedList = usedWords.slice(-100).join(', ');
+  const avoidClause = usedList ? `\n已出現過的單字（請勿重複）：${usedList}` : '';
+
+  const prompt = `你是托福Junior單字老師，請給台灣國中生5個托福常考單字。
+難度：4個B1基礎學術字，1個B2挑戰字。
+${avoidClause}
+
+只回傳以下JSON格式，不要任何其他文字：
+{
+  "words": [
+    {
+      "word": "英文單字",
+      "level": "B1",
+      "pos": "詞性(n./v./adj./adv.)",
+      "zh": "中文意思",
+      "example": "一句英文例句，把單字用<em>標記",
+      "zh_example": "例句的中文翻譯"
+    }
+  ]
+}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    const text = data.content[0].text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(text);
+
+    loading.style.display = 'none';
+    container.innerHTML = '';
+
+    parsed.words.forEach(w => {
+      const isB2 = w.level === 'B2';
+      const card = document.createElement('div');
+      card.className = 'card' + (isB2 ? ' b2' : '');
+      card.innerHTML = `
+        <div class="card-header">
+          <span class="word">${w.word}</span>
+          <span class="pos">${w.pos}</span>
+          <span class="level-tag">${w.level}</span>
+        </div>
+        <div class="zh">${w.zh}</div>
+        <div class="example">
+          ${w.example}
+          <div class="zh-ex">${w.zh_example}</div>
+        </div>
+      `;
+      container.appendChild(card);
+      usedWords.push(w.word);
+    });
+
+    sessionCount++;
+    localStorage.setItem('toefl_used', JSON.stringify(usedWords));
+    localStorage.setItem('toefl_count', sessionCount);
+    progress.textContent = `累計已學：${sessionCount * 5} 個單字`;
+
+  } catch (e) {
+    loading.style.display = 'none';
+    container.innerHTML = '<p style="color:#c0392b;">發生錯誤，請稍後再試。</p>';
+  }
+}
+
+function refreshWords() {
+  generateWords(true);
+}
+
+// Show cumulative count on load
+const count = parseInt(localStorage.getItem('toefl_count') || '0');
+if (count > 0) {
+  document.getElementById('progress').textContent = `累計已學：${count * 5} 個單字`;
+}
+</script>
+</body>
+</html>
